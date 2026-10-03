@@ -1,116 +1,94 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-char *input0 = "abcabcbb";	/* "abc", "bca", "cab" are correct, output = 3 */
-char *input1 = "bbbbb";		/* "b" is correct, output = 1 */
-char *input2 = "pwwkew";	/* "wke", "kew" are correct, output = 3 */
-
-/*int lengthOfLongestSubstring(char* s) {
-	int i;
-	char first_element;
-	char last_element;
-	for (i = 1; s[i] != '\0'; i++) {
-		int j = i;
-		first_element = s[i - 1];
-		while (first_element != s[j] && s[j] != '\0')
-			j++;
-		last_element = s[j];
-		printf("i = %d, j = %d\n s = %c, e = %c\n r = %d\n",
-				i - 1, j, first_element, last_element, j - i);
-	}
-	return -1; 
-}*/
-
 struct Node {
 	char v;
 	struct Node *next;
 };
 
-void add(struct Node *list, char c) {
-	struct Node *p = list;
-
-	while (p->next)
-		p = p->next;
-
-	p->next = malloc(sizeof(struct Node));
-	p->next->v = c;
-	p->next->next = NULL;
+struct Node *add(struct Node *tail, char c)
+{
+	struct Node *n = malloc(sizeof(struct Node));
+	n->v = c;
+	n->next = NULL;
+	tail->next = n;
+	return n;
 }
 
-void pd(struct Node *list, int index)
+void free_list(struct Node *head)
 {
-	struct Node *p = list;
-	int i;
-	for (i = 0; i < index; i++) {
-		i++;
+	while (head) {
+		struct Node *next = head->next;
+		free(head);
+		head = next;
 	}
-	printf("%c\n", p->v);
 }
 
 void pda(struct Node *list)
 {
-	struct Node *p = list;
-	while (p) {
-		printf("%c\n", p->v);
-		p = p->next;
+	while (list) {
+		printf("%c", list->v);
+		list = list->next;
 	}
+	printf("\n");
 }
 
 int lengthOfLongestSubstring(char *s)
 {
-	int max_length;
-	struct Node first = { s[0], NULL };
-	first.next = NULL;
+	if (s == NULL || s[0] == '\0')
+		return 0;
 
-	char *p = s;
-	p++;
+	struct Node dummy = { 0, NULL };
+	struct Node *tail = &dummy;
 
-	while (*p) {
-		struct Node temp = first;
-		while (temp.v) {
-			if (temp.v != *p)
+	int max_length = 0;
+	int cur_length = 0;
+
+	for (char *p = s; *p; p++) {
+		struct Node *cur = dummy.next;
+		struct Node *found = NULL;
+		while (cur) {
+			if (cur->v == *p) {
+				found = cur;
 				break;
-			temp = *temp.next;
+			}
+			cur = cur->next;
 		}
-		add(&first, *p);
-		p++;
+
+		if (found) {
+			while (dummy.next != found) {
+				struct Node *old = dummy.next;
+				dummy.next = old->next;
+				free(old);
+				cur_length--;
+			}
+			struct Node *old = dummy.next;
+			dummy.next = old->next;
+			free(old);
+			cur_length--;
+		}
+
+		tail = add(tail, *p);
+		cur_length++;
+
+		if (cur_length > max_length)
+			max_length = cur_length;
 	}
 
-	pda(&first);
-
-	return 1;
+	free_list(dummy.next);
+	return max_length;
 }
 
 int main(void)
 {
-	int result = lengthOfLongestSubstring(input0);
-	int complete = result == 3;
-	printf("%d \n", result);
-	
-	if (complete)
-		printf("TRUE\n");
-	else
-		printf("FAlSE\n");
+	char *tests[] = { "abcabcbb", "bbbbb", "pwwkew", "" };
+	int expected[] = { 3, 1, 3, 0 };
 
-	result = lengthOfLongestSubstring(input1);
-	printf("%d \n", result);
-
-	complete = result == 1;
-
-	if (complete)
-		printf("TRUE\n");
-	else
-		printf("FAlSE\n");
-
-	result = lengthOfLongestSubstring(input2);
-	printf("%d \n", result);
-
-	complete = result == 3;
-
-	if (complete)
-		printf("TRUE\n");
-	else
-		printf("FAlSE\n");
-
+	for (int i = 0; i < 4; i++) {
+		int r = lengthOfLongestSubstring(tests[i]);
+		printf("\"%s\" -> %d (expected %d) %s\n",
+			   tests[i], r, expected[i],
+			   r == expected[i] ? "OK" : "FAIL");
+	}
 	return 0;
 }
