@@ -20,7 +20,7 @@ typedef struct {
 
 /**
  * Инициализация буфера.
- * Размер буфера (ОБЯЗАТЕЛЬНО степень двойки, например 1024, 4096)
+ * Размер буфера (ОБЯЗАТЕЛЬНО степень двойки)
  */
 static inline bool ring_buffer_init(ring_buffer_t *rb, uint8_t *buffer_mem,
                                     size_t capacity) {
@@ -45,15 +45,13 @@ static inline bool ring_buffer_push(ring_buffer_t *rb, uint8_t data) {
   size_t current_tail = atomic_load_explicit(&rb->tail, memory_order_relaxed);
   size_t current_head = atomic_load_explicit(&rb->head, memory_order_acquire);
 
-  // Проверка на переполнение буфера
   if ((current_tail - current_head) >= rb->capacity) {
-    return false; // Буфер полон
+    return false;
   }
 
   // Быстрая маска за счет степени двойки (заменяет дорогое деление по модулю)
   rb->buffer[current_tail & rb->mask] = data;
 
-  // Атомарно увеличиваем tail с барьером release
   atomic_store_explicit(&rb->tail, current_tail + 1, memory_order_release);
   return true;
 }
@@ -73,7 +71,6 @@ static inline bool ring_buffer_pop(ring_buffer_t *rb, uint8_t *value) {
 
   *value = rb->buffer[current_head & rb->mask];
 
-  // Атомарно увеличиваем head с барьером release
   atomic_store_explicit(&rb->head, current_head + 1, memory_order_release);
   return true;
 }
